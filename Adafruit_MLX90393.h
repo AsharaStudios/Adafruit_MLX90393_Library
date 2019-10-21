@@ -94,6 +94,7 @@ const float mlx90393_lsb_lookup[8][4][2] = {
 class Adafruit_MLX90393 {
     public:
         Adafruit_MLX90393(TwoWire* wireBus = &Wire);
+        Adafruit_MLX90393(SPIClass* SPIBus, uint8_t pin);
 
         bool begin(uint8_t i2caddr = MLX90393_DEFAULT_ADDR);
         bool setGain(enum mlx90393_gain gain);
@@ -105,6 +106,9 @@ class Adafruit_MLX90393 {
         enum mlx90393_transport _transport;
         enum mlx90393_gain _gain;
         TwoWire* _wire;
+        SPIClass* _spi;
+        SPISettings _SPIsettings;
+        uint8_t _SSpin;
         bool _initialized;
         uint8_t _i2caddr;
 

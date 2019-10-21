@@ -33,6 +33,23 @@ Adafruit_MLX90393::Adafruit_MLX90393(TwoWire* wireBus)
 }
 
 /**
+ * Instantiates a new Adafruit_MLX90393 class instance using SPI.
+ *
+ * @param SPIBus    SPI instance to use for SPI communication.
+ * @param pin       Pin that will be used to drive MLX90393's SS pin
+ */
+Adafruit_MLX90393::Adafruit_MLX90393(SPIClass* SPIBus, uint8_t pin)
+{
+    /* Set the SPI bus instance */
+    _spi         = SPIBus;
+    _SPIsettings = SPISettings(10000000,MSBFIRST,SPI_MODE3);
+    _transport   = MLX90393_TRANSPORT_SPI;
+    _initialized = false;
+    _gain        = MLX90393_GAIN_1X;
+    _SSpin       = pin;
+}
+
+/**
  * Initialises the I2C bus, and assigns the I2C address to us.
  *
  * @param i2caddr   The I2C address to use for the sensor.
@@ -50,7 +67,9 @@ Adafruit_MLX90393::begin(uint8_t i2caddr)
             _i2caddr = i2caddr;
             break;
         case MLX90393_TRANSPORT_SPI:
-            /* Currently not handled due to HW layout. */
+            pinMode(_SSpin,OUTPUT);
+            digitalWrite(_SSpin,HIGH); // Idle state
+            _spi->begin();
             break;
     }
 
@@ -210,7 +229,12 @@ Adafruit_MLX90393::transceive(uint8_t *txbuf, uint8_t txlen,
             delay(10);
             break;
         case MLX90393_TRANSPORT_SPI:
-            /* Currently not handled due to HW layout. */
+            _spi->beginTransaction(_SPIsettings);
+            digitalWrite(_SSpin,LOW);
+            // delayMicroseconds(1); // CS setup time. Per datasheet should be 5 ns min
+            for (i = 0; i < txlen; i++) {
+                _spi->transfer(txbuf[i]);
+            }
             break;
     }
 
@@ -228,7 +252,11 @@ Adafruit_MLX90393::transceive(uint8_t *txbuf, uint8_t txlen,
             }
             break;
         case MLX90393_TRANSPORT_SPI:
-            /* Currently not handled due to HW layout. */
+            for (i = 0; i < rxlen; i++) {
+                rxbuf[i] = _spi->transfer(0x00);
+            }
+            digitalWrite(_SSpin,HIGH); // Back to idle
+            // delayMicroseconds(1); // MISO disable time. Per datasheet shall be 50 ns as much
             break;
     }
 
